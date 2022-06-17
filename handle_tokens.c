@@ -1,12 +1,56 @@
-#include "shell.h"
+#include "main.h"
+
+/**
+ * get_token - tokenizes the input string
+ * @input: input string.
+ * Return: string splitted.
+ */
+
+char **get_token(char *input)
+{
+	size_t bsize;
+	size_t i;
+	char **tokens;
+	char *token;
+
+	bsize = TOK_BUFSIZE;
+	tokens = malloc(sizeof(char *) * (bsize));
+	if (tokens == NULL)
+	{
+		write(STDERR_FILENO, ": allocation error\n", 18);
+		exit(EXIT_FAILURE);
+	}
+
+	token = _strtok(input, TOK_DELIM);
+	tokens[0] = token;
+
+	for (i = 1; token != NULL; i++)
+	{
+		if (i == bsize)
+		{
+			bsize += TOK_BUFSIZE;
+			tokens = _reallocdp(tokens, i, sizeof(char *) * bsize);
+			if (tokens == NULL)
+			{
+				write(STDERR_FILENO, ": allocation error\n", 18);
+				exit(EXIT_FAILURE);
+			}
+		}
+		token = _strtok(NULL, TOK_DELIM);
+		tokens[i] = token;
+	}
+
+	return (tokens);
+}
+
 
 /**
  * swap_char - swaps | and & for non-printed chars
- *
  * @input: input string
  * @bool: type of swap
  * Return: swapped string
  */
+
 char *swap_char(char *input, int bool)
 {
 	int i;
@@ -45,13 +89,12 @@ char *swap_char(char *input, int bool)
 
 /**
  * add_nodes - add separators and command lines in the lists
- *
  * @head_s: head of separator list
  * @head_l: head of command lines list
  * @input: input string
- * Return: no return
  */
-void add_nodes(sep_t **head_s, line_t **head_l, char *input)
+
+void add_nodes(sep_list **head_s, line_list **head_l, char *input)
 {
 	int i;
 	char *line;
@@ -81,17 +124,16 @@ void add_nodes(sep_t **head_s, line_t **head_l, char *input)
 
 /**
  * go_next - go to the next command line stored
- *
  * @list_s: separator list
  * @list_l: command line list
- * @cmd: data structure
- * Return: no return
+ * @d_sh: data structure
  */
-void go_next(sep_t **list_s, line_t **list_l, cmd_t *cmd)
+
+void go_next(sep_list **list_s, line_list **list_l, shell_d *d_sh)
 {
 	int loop_sep;
-	sep_t *ls_s;
-	line_t *ls_l;
+	sep_list *ls_s;
+	line_list *ls_l;
 
 	loop_sep = 1;
 	ls_s = *list_s;
@@ -99,18 +141,18 @@ void go_next(sep_t **list_s, line_t **list_l, cmd_t *cmd)
 
 	while (ls_s != NULL && loop_sep)
 	{
-		if (cmd->status == 0)
+		if (d_sh->status == 0)
 		{
-			if (ls_s->sep == '&' || ls_s->sep == ';')
+			if (ls_s->separator == '&' || ls_s->separator == ';')
 				loop_sep = 0;
-			if (ls_s->sep == '|')
+			if (ls_s->separator == '|')
 				ls_l = ls_l->next, ls_s = ls_s->next;
 		}
 		else
 		{
-			if (ls_s->sep == '|' || ls_s->sep == ';')
+			if (ls_s->separator == '|' || ls_s->separator == ';')
 				loop_sep = 0;
-			if (ls_s->sep == '&')
+			if (ls_s->separator == '&')
 				ls_l = ls_l->next, ls_s = ls_s->next;
 		}
 		if (ls_s != NULL && !loop_sep)
@@ -121,21 +163,23 @@ void go_next(sep_t **list_s, line_t **list_l, cmd_t *cmd)
 	*list_l = ls_l;
 }
 
-
 /**
- * apply_seperators - splits command lines according to
+ * split_commands - splits command lines according to
  * the separators ;, | and &, and executes them
- *
- * @cmd: data structure
- * @input: input string
- * Return: 0 to exit, 1 to continue
+ * @d_sh: param data structure
+ * @input: param input string
+ * Return: int
  */
-int apply_seperators(cmd_t *cmd, char *input)
+
+int split_commands(shell_d *d_sh, char *input)
 {
 
-	sep_t *head_s = NULL, *list_s = NULL;
-	line_t *head_l = NULL, *list_l = NULL;
-	int ready;
+	sep_list *head_s, *list_s;
+	line_list *head_l, *list_l;
+	int i;
+
+	head_s = NULL;
+	head_l = NULL;
 
 	add_nodes(&head_s, &head_l, input);
 
@@ -144,18 +188,15 @@ int apply_seperators(cmd_t *cmd, char *input)
 
 	while (list_l != NULL)
 	{
-		cmd->input = list_l->line;
-		cmd->args = get_toks(cmd->input, DELIM);
-		ready = execution(cmd);
-		free(cmd->args);
+		d_sh->input = list_l->line;
+		d_sh->tokens = get_token(d_sh->input);
+		i = exec_line(d_sh);
+		free(d_sh->tokens);
 
-		if (ready == 0)
-		{
-			cmd->ready = 0;
+		if (i == 0)
 			break;
-		}
 
-		go_next(&list_s, &list_l, cmd);
+		go_next(&list_s, &list_l, d_sh);
 
 		if (list_l != NULL)
 			list_l = list_l->next;
@@ -164,7 +205,7 @@ int apply_seperators(cmd_t *cmd, char *input)
 	free_sep_list(&head_s);
 	free_line_list(&head_l);
 
-	if (ready == 0)
+	if (i == 0)
 		return (0);
 	return (1);
 }

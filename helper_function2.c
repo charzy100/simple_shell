@@ -1,18 +1,46 @@
-#include "shell.h"
+#include "main.h"
+
+/**
+ * rev_string - reverses a string.
+ * @s: input string.
+ */
+
+void rev_string(char *s)
+{
+	int count = 0, i, j;
+	char *str, temp;
+
+	while (count >= 0)
+	{
+		if (s[count] == '\0')
+			break;
+		count++;
+	}
+	str = s;
+
+	for (i = 0; i < (count - 1); i++)
+	{
+		for (j = i + 1; j > 0; j--)
+		{
+			temp = *(str + j);
+			*(str + j) = *(str + (j - 1));
+			*(str + (j - 1)) = temp;
+		}
+	}
+}
+
 /**
  * _memcpy - copies information between void pointers.
  * @newptr: destination pointer.
  * @ptr: source pointer.
  * @size: size of the new pointer.
- *
- * Return: no return.
  */
+
 void _memcpy(void *newptr, const void *ptr, unsigned int size)
 {
 	char *char_ptr = (char *)ptr;
 	char *char_newptr = (char *)newptr;
 	unsigned int i;
-
 
 	for (i = 0; i < size; i++)
 		char_newptr[i] = char_ptr[i];
@@ -23,12 +51,12 @@ void _memcpy(void *newptr, const void *ptr, unsigned int size)
  * @ptr: pointer to the memory previously allocated.
  * @old_size: size, in bytes, of the allocated space of ptr.
  * @new_size: new size, in bytes, of the new memory block.
- *
  * Return: ptr.
  * if new_size == old_size, returns ptr without changes.
  * if malloc fails, returns NULL.
  */
-void *_realloc(void *ptr, size_t old_size, size_t new_size)
+
+void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size)
 {
 	void *newptr;
 
@@ -40,7 +68,7 @@ void *_realloc(void *ptr, size_t old_size, size_t new_size)
 		free(ptr);
 		return (NULL);
 	}
-  
+
 	if (new_size == old_size)
 		return (ptr);
 
@@ -62,11 +90,11 @@ void *_realloc(void *ptr, size_t old_size, size_t new_size)
  * @ptr: double pointer to the memory previously allocated.
  * @old_size: size, in bytes, of the allocated space of ptr.
  * @new_size: new size, in bytes, of the new memory block.
- *
  * Return: ptr.
  * if new_size == old_size, returns ptr without changes.
  * if malloc fails, returns NULL.
  */
+
 char **_reallocdp(char **ptr, unsigned int old_size, unsigned int new_size)
 {
 	char **newptr;
@@ -88,4 +116,28 @@ char **_reallocdp(char **ptr, unsigned int old_size, unsigned int new_size)
 	free(ptr);
 
 	return (newptr);
+}
+
+/**
+ * copy_info - copies info to create
+ * a new env or alias
+ * @name: name (env or alias)
+ * @value: value (env or alias)
+ * Return: new env or alias.
+ */
+char *copy_info(char *name, char *value)
+{
+	char *new;
+	int len_name, len_value, len;
+
+	len_name = _strlen(name);
+	len_value = _strlen(value);
+	len = len_name + len_value + 2;
+	new = malloc(sizeof(char) * (len));
+	_strcpy(new, name);
+	_strcat(new, "=");
+	_strcat(new, value);
+	_strcat(new, "\0");
+
+	return (new);
 }
